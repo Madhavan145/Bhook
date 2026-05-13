@@ -1,0 +1,16 @@
+{
+  "name": "bhook",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": [
+    "apps/*",
+    "services/*",
+    "shared/*"
+  ],
+  "scripts": {
+    "dev:up": "docker compose up -d",
+    "dev:down": "docker compose down",
+    "build": "echo \"Build step placeholder\"",
+    "test": "echo \"Test step placeholder\""
+  }
+}

@@ -1,0 +1,77 @@
+# Bhook root .gitignore
+
+# Java / Maven
+target/
+**/target/
+*.class
+*.jar
+*.war
+*.log
+.mvn/
+.classpath
+.project
+.settings/
+.idea/
+*.iml
+.gradle/
+**/.gradle/
+
+# Node / Web
+node_modules/
+.next/
+**/.next/
+dist/
+*.tsbuildinfo
+
+# Flutter / Dart
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.pub-cache/
+**/Pods/
+**/local.properties
+**/build/
+*.iml
+*.ipr
+*.iws
+# Flutter lockfiles are intentionally tracked for reproducible builds.
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE-local configuration
+.vscode/
+*.code-workspace
+
+# Local environments and credentials
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.*.example
+secrets/
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa*
+id_ed25519*
+
+# Local databases, runtime data, and logs
+*.log
+logs/
+*.db
+*.sqlite
+*.sqlite3
+*.mv.db
+data/
+.volumes/
+/build_log.txt
+/rebuild.log
+
+# Local agent tooling
+/.github/skills/
+/docs/
