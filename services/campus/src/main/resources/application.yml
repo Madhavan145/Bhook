@@ -1,0 +1,43 @@
+server:
+  port: 8083
+  shutdown: graceful
+
+spring:
+  application:
+    name: bhook-campus
+  datasource:
+    url: jdbc:postgresql://localhost:5432/bhook_campus
+    username: bhook_user
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc.time_zone: UTC
+  flyway:
+    enabled: true
+    schemas: campus
+    default-schema: campus
+    baseline-on-migrate: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics
+
+bhook:
+  security:
+    jwt:
+      issuer: https://identity.local.bhook.app
+      audience: bhook-api
+      secret: ${BHOOK_JWT_SECRET}
+      access-token-ttl-seconds: 900
+      refresh-token-ttl-seconds: 2592000
+
+app:
+  name: Bhook Campus Service
+  environment: ${APP_ENV:local}
