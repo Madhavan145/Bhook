@@ -1,0 +1,61 @@
+server:
+  port: 8084
+  shutdown: graceful
+
+spring:
+  application:
+    name: bhook-catalog
+  datasource:
+    url: jdbc:postgresql://localhost:5432/bhook_catalog
+    username: bhook_user
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 4
+      pool-name: bhook-catalog-cp
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc.time_zone: UTC
+  flyway:
+    enabled: true
+    schemas: catalog
+    default-schema: catalog
+    baseline-on-migrate: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics
+
+bhook:
+  security:
+    jwt:
+      issuer: https://identity.local.bhook.app
+      audience: bhook-api
+      secret: ${BHOOK_JWT_SECRET}
+      access-token-ttl-seconds: 900
+      refresh-token-ttl-seconds: 2592000
+  outbox:
+    enabled: true
+    poll-ms: 2000
+
+spring.kafka:
+  bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
+  producer:
+    key-serializer: org.apache.kafka.common.serialization.StringSerializer
+    value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    acks: all
+    properties:
+      enable.idempotence: true
+      max.in.flight.requests.per.connection: 5
+      retries: 10
+
+app:
+  name: Bhook Catalog Service
+  environment: ${APP_ENV:local}
