@@ -1,0 +1,76 @@
+server:
+  port: 8085
+  shutdown: graceful
+
+spring:
+  application:
+    name: bhook-order
+  datasource:
+    url: jdbc:postgresql://localhost:5432/bhook_order
+    username: bhook_user
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 4
+      pool-name: bhook-order-cp
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc.time_zone: UTC
+  flyway:
+    enabled: true
+    schemas: ordering
+    default-schema: ordering
+    baseline-on-migrate: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics
+
+bhook:
+  security:
+    jwt:
+      issuer: https://identity.local.bhook.app
+      audience: bhook-api
+      secret: ${BHOOK_JWT_SECRET}
+      access-token-ttl-seconds: 900
+      refresh-token-ttl-seconds: 2592000
+  outbox:
+    enabled: true
+    poll-ms: 2000
+  catalog:
+    base-url: ${BHOOK_CATALOG_BASE_URL:http://localhost:8084}
+  customer:
+    base-url: ${BHOOK_CUSTOMER_BASE_URL:http://localhost:8082}
+  fees:
+    delivery-minor: 3000
+    platform-minor: 1000
+
+spring.kafka:
+  bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
+  producer:
+    key-serializer: org.apache.kafka.common.serialization.StringSerializer
+    value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    acks: all
+    properties:
+      enable.idempotence: true
+      max.in.flight.requests.per.connection: 5
+      retries: 10
+  consumer:
+    group-id: bhook-order
+    key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    auto-offset-reset: earliest
+    enable-auto-commit: false
+  listener:
+    ack-mode: RECORD
+
+app:
+  name: Bhook Order Service
+  environment: ${APP_ENV:local}
