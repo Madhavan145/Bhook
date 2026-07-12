@@ -1,0 +1,45 @@
+server:
+  port: 8091
+  shutdown: graceful
+
+spring:
+  application:
+    name: bhook-tracking
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics
+
+bhook:
+  security:
+    jwt:
+      issuer: https://identity.local.bhook.app
+      audience: bhook-api
+      secret: ${BHOOK_JWT_SECRET}
+      access-token-ttl-seconds: 900
+      refresh-token-ttl-seconds: 2592000
+  tracking:
+    location-ttl-seconds: 300
+    order-ttl-seconds: 3600
+
+spring.kafka:
+  bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
+  consumer:
+    group-id: bhook-tracking
+    key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    auto-offset-reset: latest
+    enable-auto-commit: false
+  listener:
+    ack-mode: RECORD
+
+app:
+  name: Bhook Tracking Service
+  environment: ${APP_ENV:local}
