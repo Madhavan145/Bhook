@@ -1,0 +1,51 @@
+server:
+  port: 8092
+  shutdown: graceful
+
+spring:
+  application:
+    name: bhook-upload
+  datasource:
+    url: jdbc:postgresql://localhost:5432/bhook_upload
+    username: bhook_user
+    password: ${SPRING_DATASOURCE_PASSWORD}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc.time_zone: UTC
+  flyway:
+    enabled: true
+    schemas: uploads
+    default-schema: uploads
+    baseline-on-migrate: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics
+
+bhook:
+  security:
+    jwt:
+      issuer: https://identity.local.bhook.app
+      audience: bhook-api
+      secret: ${BHOOK_JWT_SECRET}
+      access-token-ttl-seconds: 900
+      refresh-token-ttl-seconds: 2592000
+  storage:
+    endpoint: ${BHOOK_STORAGE_ENDPOINT:http://localhost:9000}
+    public-endpoint: ${BHOOK_STORAGE_PUBLIC_ENDPOINT:}
+    region: ${BHOOK_STORAGE_REGION:us-east-1}
+    access-key: ${BHOOK_STORAGE_ACCESS_KEY:bhook_minio}
+    secret-key: ${MINIO_ROOT_PASSWORD}
+    bucket: ${BHOOK_STORAGE_BUCKET:bhook}
+    presign-expiry-seconds: 900
+    max-size-bytes: 5242880
+
+app:
+  name: Bhook Upload Service
+  environment: ${APP_ENV:local}

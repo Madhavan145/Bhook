@@ -1,0 +1,246 @@
+version: '3.9'
+
+x-service-defaults: &service-defaults
+  restart: unless-stopped
+  depends_on:
+    - postgres
+    - kafka
+  environment: &service-env
+    APP_ENV: docker
+    BHOOK_JWT_SECRET: ${BHOOK_JWT_SECRET:?Set BHOOK_JWT_SECRET in .env}
+    KAFKA_BOOTSTRAP: kafka:9092
+    SPRING_DATASOURCE_USERNAME: bhook_user
+    SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: 4
+    SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: 0
+    BHOOK_CORS_ALLOWED_ORIGINS: http://localhost:3000,http://localhost:5100,http://localhost:5200,http://localhost:5300,http://127.0.0.1:3000,http://127.0.0.1:5100,http://127.0.0.1:5200,http://127.0.0.1:5300
+    BHOOK_CAMPUS_BASE_URL: http://campus:8083
+    BHOOK_CATALOG_BASE_URL: http://catalog:8084
+    BHOOK_CUSTOMER_BASE_URL: http://customer:8082
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: bhook-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: bhook
+      POSTGRES_USER: bhook_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/docker/postgres-init:/docker-entrypoint-initdb.d:ro
+
+  redis:
+    image: redis:7-alpine
+    container_name: bhook-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+  kafka:
+    image: bitnamilegacy/kafka:3.7.0
+    container_name: bhook-kafka
+    restart: unless-stopped
+    environment:
+      KAFKA_CFG_NODE_ID: 1
+      KAFKA_CFG_PROCESS_ROLES: controller,broker
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:29092
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:29092
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+
+  minio:
+    image: minio/minio:RELEASE.2024-10-13T13-34-11Z
+    container_name: bhook-minio
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: bhook_minio
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD in .env}
+      MINIO_API_CORS_ALLOW_ORIGIN: "http://localhost:5200,http://localhost:5300,http://127.0.0.1:5200,http://127.0.0.1:5300"
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+
+  identity:
+    <<: *service-defaults
+    depends_on: [postgres, kafka, redis]
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.service
+      args: { SERVICE: identity }
+    container_name: bhook-identity
+    ports: ["8081:8081"]
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/bhook_identity
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_APPLICATION_JSON: >-
+        {"logging":{"level":{"com.bhook.identity.service.OtpService":"DEBUG"}}}
+
+  customer:
+    <<: *service-defaults
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.service
+      args: { SERVICE: customer }
+    container_name: bhook-customer
+    ports: ["8082:8082"]
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/bhook_customer
+
+  campus:
+    <<: *service-defaults
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.service
+      args: { SERVICE: campus }
+    container_name: bhook-campus
+    ports: ["8083:8083"]
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/bhook_campus
+
+  catalog:
+    <<: *service-defaults
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.service
+      args: { SERVICE: catalog }
+    container_name: bhook-catalog
+    ports: ["8084:8084"]
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/bhook_catalog
+
+  order:
+    <<: *service-defaults
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.service
+      args: { SERVICE: order }
+    container_name: bhook-order
+    ports: ["8085:8085"]
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/bhook_order
+
+  payment:
+    <<: *service-defaults
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.service
+      args: { SERVICE: payment }
+    container_name: bhook-payment
+    ports: ["8086:8086"]
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/bhook_payment
+      BHOOK_PAYMENT_WEBHOOK_SECRET: ${BHOOK_PAYMENT_WEBHOOK_SECRET:?Set BHOOK_PAYMENT_WEBHOOK_SECRET in .env}
+
+  delivery:
+    <<: *service-defaults
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.service
+      args: { SERVICE: delivery }
+    container_name: bhook-delivery
+    ports: ["8087:8087"]
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/bhook_delivery
+
+  notification:
+    <<: *service-defaults
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.service
+      args: { SERVICE: notification }
+    container_name: bhook-notification
+    ports: ["8088:8088"]
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/bhook_notification
+
+  operations:
+    <<: *service-defaults
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.service
+      args: { SERVICE: operations }
+    container_name: bhook-operations
+    ports: ["8089:8089"]
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/bhook_operations
+
+  financial:
+    <<: *service-defaults
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.service
+      args: { SERVICE: financial }
+    container_name: bhook-financial
+    ports: ["8090:8090"]
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/bhook_financial
+
+  tracking:
+    <<: *service-defaults
+    depends_on: [redis, kafka]
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.service
+      args: { SERVICE: tracking }
+    container_name: bhook-tracking
+    ports: ["8091:8091"]
+    environment:
+      <<: *service-env
+      REDIS_HOST: redis
+
+  upload:
+    <<: *service-defaults
+    depends_on: [postgres, minio]
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.service
+      args: { SERVICE: upload }
+    container_name: bhook-upload
+    ports: ["8092:8092"]
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/bhook_upload
+      BHOOK_STORAGE_ENDPOINT: http://minio:9000
+      BHOOK_STORAGE_PUBLIC_ENDPOINT: http://localhost:9000
+      BHOOK_STORAGE_SECRET_KEY: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD in .env}
+
+  social:
+    <<: *service-defaults
+    depends_on: [postgres, customer]
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.service
+      args: { SERVICE: social }
+    container_name: bhook-social
+    ports: ["8093:8093"]
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/bhook_social
+      BHOOK_CUSTOMER_BASE_URL: http://customer:8082
+
+volumes:
+  postgres_data:
+  minio_data:

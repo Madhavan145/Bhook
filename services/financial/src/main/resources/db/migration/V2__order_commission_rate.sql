@@ -1,0 +1,2 @@
+ALTER TABLE financial.order_totals
+    ADD COLUMN IF NOT EXISTS commission_bps INTEGER NOT NULL DEFAULT 1500;

@@ -1,0 +1,67 @@
+server:
+  port: 8082
+  shutdown: graceful
+
+spring:
+  application:
+    name: bhook-customer
+  datasource:
+    url: jdbc:postgresql://localhost:5432/bhook_customer
+    username: bhook_user
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc.time_zone: UTC
+  flyway:
+    enabled: true
+    schemas: customer
+    default-schema: customer
+    baseline-on-migrate: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics
+
+bhook:
+  security:
+    jwt:
+      issuer: https://identity.local.bhook.app
+      audience: bhook-api
+      secret: ${BHOOK_JWT_SECRET}
+      access-token-ttl-seconds: 900
+      refresh-token-ttl-seconds: 2592000
+  outbox:
+    enabled: true
+    poll-ms: 2000
+  campus:
+    base-url: ${BHOOK_CAMPUS_BASE_URL:http://localhost:8083}
+
+spring.kafka:
+  bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
+  consumer:
+    group-id: bhook-customer
+    key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    auto-offset-reset: earliest
+    enable-auto-commit: false
+  producer:
+    key-serializer: org.apache.kafka.common.serialization.StringSerializer
+    value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    acks: all
+    properties:
+      enable.idempotence: true
+      max.in.flight.requests.per.connection: 5
+      retries: 10
+  listener:
+    ack-mode: RECORD
+
+app:
+  name: Bhook Customer Service
+  environment: ${APP_ENV:local}

@@ -1,0 +1,2 @@
+ALTER TABLE campus.campuses
+    ADD COLUMN IF NOT EXISTS platform_fee_minor BIGINT NOT NULL DEFAULT 1000;

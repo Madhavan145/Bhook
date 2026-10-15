@@ -1,0 +1,44 @@
+server:
+  port: 8093
+  shutdown: graceful
+
+spring:
+  application:
+    name: bhook-social
+  datasource:
+    url: jdbc:postgresql://localhost:5432/bhook_social
+    username: bhook_user
+    password: ${SPRING_DATASOURCE_PASSWORD}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc.time_zone: UTC
+  flyway:
+    enabled: true
+    schemas: social
+    default-schema: social
+    baseline-on-migrate: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics
+
+bhook:
+  customer:
+    base-url: ${BHOOK_CUSTOMER_BASE_URL:http://localhost:8082}
+  security:
+    jwt:
+      issuer: https://identity.local.bhook.app
+      audience: bhook-api
+      secret: ${BHOOK_JWT_SECRET}
+      access-token-ttl-seconds: 900
+      refresh-token-ttl-seconds: 2592000
+
+app:
+  name: Bhook Social Service
+  environment: ${APP_ENV:local}

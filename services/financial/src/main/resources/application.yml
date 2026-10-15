@@ -1,0 +1,55 @@
+server:
+  port: 8090
+  shutdown: graceful
+
+spring:
+  application:
+    name: bhook-financial
+  datasource:
+    url: jdbc:postgresql://localhost:5432/bhook_financial
+    username: bhook_user
+    password: ${SPRING_DATASOURCE_PASSWORD}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc.time_zone: UTC
+  flyway:
+    enabled: true
+    schemas: financial
+    default-schema: financial
+    baseline-on-migrate: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics
+
+bhook:
+  security:
+    jwt:
+      issuer: https://identity.local.bhook.app
+      audience: bhook-api
+      secret: ${BHOOK_JWT_SECRET}
+      access-token-ttl-seconds: 900
+      refresh-token-ttl-seconds: 2592000
+  financial:
+    commission-basis-points: ${BHOOK_COMMISSION_BPS:1500}
+
+spring.kafka:
+  bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
+  consumer:
+    group-id: bhook-financial
+    key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    auto-offset-reset: earliest
+    enable-auto-commit: false
+  listener:
+    ack-mode: RECORD
+
+app:
+  name: Bhook Financial Service
+  environment: ${APP_ENV:local}
